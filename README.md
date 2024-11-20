@@ -109,6 +109,8 @@ pip install --upgrade openai
 
 最后
 
+注意
+
 stitchAi会不断更新自身已有的最优函数，同时把Ai平台的chatmessage信息传递选择做一个基础上传，这里即可以修改既定参数，又可以选择自身重构，欢迎各位能够提出宝贵的建议。
 
 上传文件名：最优函数调整.txt
