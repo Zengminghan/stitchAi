@@ -138,8 +138,11 @@ pip install --upgrade openai
 对于由Ai完成的答案，具有明显倾向性：（下面举一个例子）
 
 西南科技大学，xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx。
-   **地理位置**  xxxxxxxxxxxxxxxxxxx
-   **基本介绍**  xxxxxxxxxxxxxxxxxx
+
+**地理位置**  xxxxxxxxxxxxxxxxxxx
+
+**基本介绍**  xxxxxxxxxxxxxxxxxx
+
 西南科技大学是一所xxxxxxxxxxxxxxxxxxxxxxxx。
 
 因此我们希望的集成后的stitchAi能够自主的去掉烦人的符号，因此在生成文本文档时我们可以增加去Ai功能，实现方法：
