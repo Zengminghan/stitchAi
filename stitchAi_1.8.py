@@ -7,6 +7,7 @@ from openai import OpenAI
 from docx import Document  # 导入python-docx库
 import torch
 from transformers import BertTokenizer, BertModel
+import json
 
 app = Flask(__name__)
 
@@ -20,24 +21,45 @@ app.config['DOWNLOAD_FOLDER'] = DOWNLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
-class ErnieBotService:
-    def __init__(self, api_key, api_endpoint):
-        self.api_key = api_key
+class WenXinYiYanService:
+    def __init__(self, api_endpoint):
         self.api_endpoint = api_endpoint
 
     def chatMessage(self, message):
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {self.api_key}'
-        }
-        data = {
-            'query': message,
-        }
-        response = requests.post(self.api_endpoint, headers=headers, json=data)
-        if response.status_code == 200:
-            return response.json().get('answer', '未能从文心一言API获取答案。')
-        else:
-            return f'文心一言API调用失败，状态码：{response.status_code}'
+        # 正确缩进的代码
+        payload = json.dumps({
+            "messages": [{
+                "role": "user",
+                "content": message
+            }],
+            "temperature": 0.95,
+            "top_p": 0.8,
+            "penalty_score": 1,
+            "enable_system_memory": False,
+            "disable_search": False,
+            "enable_citation": False
+        })
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(self.api_endpoint, headers=headers, data=payload)
+
+        # 打印请求内容和响应内容
+        print("Request Payload:", payload)
+        print("Response Status Code:", response.status_code)
+
+        try:
+            # 检查返回的 JSON 格式
+            response_json = response.json()  # 尝试将响应解析为 JSON
+            print("Response JSON:", response_json)
+
+            # 如果返回的 JSON 格式正确，尝试从中提取 'answer'
+            return response_json.get('answer', '未能从文心一言API获取答案。')
+        except ValueError as e:
+            print(f"JSON解析错误：{e}")
+            return "文心一言API返回的格式错误。"
+        except Exception as e:
+            print(f"发生错误：{e}")
+            return f"请求文心一言API时发生错误：{e}"
+
 
 class KimiService:
     def __init__(self, api_key, base_url, max_tokens=1024):  # 增加了max_tokens参数
@@ -60,12 +82,13 @@ class KimiService:
 class AIAssistantDispatcher:
     def __init__(self):
         self.assistants = {
-            'ernie': ErnieBotService(api_key="YOUR_API_KEY", api_endpoint="YOUR_API_ENDPOINT"),
-            'kimi': KimiService(api_key="YOUR_API_KEY", base_url="YOUR_API_BASE_URL")
-        }
+             'wenxinyiyan': WenXinYiYanService(api_endpoint="https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions_pro?access_token=24.d1ee8d6a70fcd162f7a26936f614650c.2592000.1736343757.282335-116580611"),
+            'kimi': KimiService(api_key="sk-7H3ZdLK7dqilVMGQUUbtXQ1hrkf951tNYNR1TnEgNbG9gkGF", base_url="https://api.moonshot.cn/v1")
+             }
+        
         # 初始化BERT模型和tokenizer
-        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-        self.model = BertModel.from_pretrained("bert-base-uncased")
+        self.tokenizer = BertTokenizer.from_pretrained('C:/Users/12864/Desktop/model')
+        self.model = BertModel.from_pretrained('C:/Users/12864/Desktop/model')
     
     def get_best_response(self, message, file_path=None):
         if file_path:
@@ -148,7 +171,7 @@ def home():
                                 <label class="custom-file-label" for="inputGroupFile01">Choose file</label>
                             </div>
                             <div class="input-group-append">
-                                <input type="submit" class="btn btn-primary" value="Upload and解读 File">
+                                <input type="submit" class="btn btn-primary" value="Upload and 解读 File">
                             </div>
                         </div>
                     </form>
@@ -191,13 +214,13 @@ def upload_file():
         with open(txt_file_path, 'w', encoding='utf-8') as f:
             f.write(best_answer)
         
-        # 也可以将答案写入docx文件（可选）
+        # 将答案写入docx文件
         docx_file_path = os.path.join(app.config['DOWNLOAD_FOLDER'], f'answer_{filename}.docx')
         doc = Document()
         doc.add_paragraph(best_answer)
         doc.save(docx_file_path)
         
-        # 返回下载链接（或者你可以直接返回答案和文件路径）
+        # 返回下载链接
         return jsonify({
             'answer': best_answer,
             'txt_download_url': f'/downloads/{os.path.basename(txt_file_path)}',
@@ -217,24 +240,23 @@ def ask_question():
     with open(txt_file_path, 'w', encoding='utf-8') as f:
         f.write(best_answer)
     
-    # 也可以将答案写入docx文件（可选）
+    # 将答案写入docx文件
     docx_file_path = os.path.join(app.config['DOWNLOAD_FOLDER'], f'answer_{user_question.replace(" ", "_")}.docx')
     doc = Document()
     doc.add_paragraph(best_answer)
     doc.save(docx_file_path)
     
-    # 返回下载链接（或者你可以直接返回答案和文件路径）
+    # 返回下载链接
     return jsonify({
         'answer': best_answer,
         'txt_download_url': f'/downloads/{os.path.basename(txt_file_path)}',
         'docx_download_url': f'/downloads/{os.path.basename(docx_file_path)}'
     })
 
-# 新增下载路由
+# 下载文件路由
 @app.route('/downloads/<filename>', methods=['GET'])
 def download_file(filename):
-    return send_from_directory(app.config['DOWNLOAD_FOLDER'], filename, as_attachment=True)
-
+    return send_from_directory(app.config['DOWNLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
     app.run(debug=True)
