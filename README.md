@@ -209,6 +209,13 @@ calculate_relevance_score是一个示例方法，用于计算生成文本和问�
 
 目前文言一心由于v1版本换至v2版本，文档api讲不再保存原先api+access_token的模式，请自行按照官方文档格式换至v2
 
+# 流程：
+![image](https://github.com/user-attachments/assets/e8d68681-5847-4741-b1be-7beb1afe1490)
+
+# 效果展示：
+![image](https://github.com/user-attachments/assets/592f5ec5-9c25-4d7e-8f52-f7af73fb2a9d)
+![image](https://github.com/user-attachments/assets/5f4d2555-c8fd-4fba-9646-4a1157604edb)
+
 未完待续-----------------------------------------------------------------------------------------------------
 
 **最后**
