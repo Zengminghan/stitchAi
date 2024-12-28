@@ -10,9 +10,10 @@ from transformers import BertTokenizer, BertModel
 import json
 import re
 from datetime import datetime
-from longwriter_service import generate_long_text
 
 app = Flask(__name__)
+
+app.config['MAX_CONTENT_LENGTH'] = 20 * 1024 * 1024  # 设置最大请求体大小为 20MB
 
 # 设置文件上传和下载目录
 UPLOAD_FOLDER = 'uploads/'
@@ -46,10 +47,10 @@ class KimiService:
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.max_tokens = max_tokens
 
-    def chatMessage(self, message):
+    def chatMessage(self, message, model="moonshot-v1-8k"):
         try:
             completion = self.client.chat.completions.create(
-                model="moonshot-v1-8k",
+                model=model,
                 messages=[{"role": "user", "content": message}],
                 max_tokens=self.max_tokens
             )
@@ -73,20 +74,38 @@ class AIAssistantDispatcher:
             futures = {executor.submit(a.chatMessage, message): name for name, a in self.assistants.items()}
             return {futures[future]: future.result() for future in concurrent.futures.as_completed(futures)}
     
+    
       # 结构分类
     def identify_structure(self, text):
-        parts = {'start': '', 'body': {}, 'end': ''}
-        parts['start'] = text.split('\n', 1)[0] if '\n' in text else text
-        if '\n' in text:
-            parts['end'] = text.rsplit('\n', 1)[1] if '\n' in text else ''
-            body_text = text.split('\n', 1)[1] if '\n' in text else text
-            for match in re.finditer(r'(\d+)\.\s(.*?)(?=\d+\.\s|\Z)', body_text, re.S):
-                number, content = match.group(1), match.group(2).strip()
-                if number not in parts['body']:
-                    parts['body'][number] = [content]
-                else:
-                    parts['body'][number].append(content)
-        return parts
+      parts = {'start': '', 'body': {}, 'end': ''}
+      # 从前往后读，读到换行符，则标记为开头
+      start_index = text.find('\n')
+      if start_index != -1:
+          parts['start'] = text[:start_index]
+          text = text[start_index + 1:]  # 去掉开头部分继续处理
+      else:
+          parts['start'] = text
+          return parts  # 没有换行符，直接返回
+
+      # 从后往前读，读到换行符则标记为结尾
+      end_index = text.rfind('\n')
+      if end_index != -1:
+          parts['end'] = text[end_index + 1:]  # 从换行符后开始是结尾
+          text = text[:end_index]  # 去掉结尾部分继续处理
+      else:
+          parts['end'] = ''  # 没有换行符，没有结尾部分
+
+      # 处理中间部分，如果有换行符
+      if '\n' in text:
+          body_text = text
+          for match in re.finditer(r'(\d+)\.\s(.*?)(?=\d+\.\s|\Z)', body_text, re.S):
+              number, content = match.group(1), match.group(2).strip()
+              if number not in parts['body']:
+                  parts['body'][number] = [content]
+              else:
+                  parts['body'][number].append(content)
+
+      return parts
 
       # 合并开头、内容、结尾
     def merge_parts(self, parts_list):
@@ -141,6 +160,7 @@ dispatcher = AIAssistantDispatcher()
 @app.route('/')
 def home():
     return render_template('home.html')
+
 
 # 上传文件路由
 @app.route('/upload', methods=['POST'])
