@@ -22,6 +22,7 @@ stitchAi是由西南科技大学开源软件课程学生自主完成的一种可
 
 # 4.展示
 
+https://github.com/user-attachments/assets/95d87f80-abf1-435d-a457-a41c4ef8b27c
 
 
  
